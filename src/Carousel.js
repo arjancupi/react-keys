@@ -41,7 +41,7 @@ class Carousel extends Component {
       circular: true,
       active: true,
       speed: 100,
-      debounce: 82,
+      debounce: 100,
       className: 'carousel',
       childrenClassName: 'carousel-child',
     };
@@ -52,10 +52,17 @@ class Carousel extends Component {
     this.listenerId = addListener(this.keysHandler, this);
     this.timeout = null;
     this.sketch = [];
-    this.movingCountDown = () => {
-      this.timeout = setTimeout(() => _updateBinderState(props.id, { moving: false }), props.speed);
+    this.movingCountDown = (cursor) => {
+      this.timeout = setTimeout(() => {
+        _updateBinderState(props.id, { moving: false });
+        this.setState({
+          cursor: cursor,
+          transition: -(props.elWidth * 2),
+          anim: false,
+        });
+      }, props.speed);
     };
-    this.state = { cursor: props.index };
+    this.state = { cursor: props.index, transition: -(this.props.elWidth * 2) };
   }
 
   componentWillMount() {
@@ -88,18 +95,23 @@ class Carousel extends Component {
     removeListener(this.listenerId);
   }
 
-  performAction(cursor) {
-    block(this.props.debounce);
+  performAction(cursor, direction) {
+    const { debounce, children, id, elWidth, onChange } = this.props;
+    const { transition } = this.state;
+    block(debounce);
     clearTimeout(this.timeout);
-    this.selectedId = this.props.children[cursor].props.id;
-    _updateBinderState(this.props.id, {
+    this.selectedId = children[cursor].props.id;
+    _updateBinderState(id, {
       selectedId: this.selectedId,
       cursor: cursor,
       moving: true,
     });
-    this.setState({ cursor: cursor });
-    this.movingCountDown();
-    execCb(this.props.onChange, this.selectedId, this, this.props);
+    this.setState({
+      transition: direction === RIGHT ? transition - elWidth : transition + elWidth,
+      anim: true
+    });
+    this.movingCountDown(cursor);
+    execCb(onChange, this.selectedId, this, this.props);
   }
 
   keysHandler(keyCode) {
@@ -108,11 +120,11 @@ class Carousel extends Component {
       switch (keyCode) {
         case LEFT:
           if (!this.props.circular && cursor === 0) return;
-          this.performAction(getPrev(this.sketch, cursor));
+          this.performAction(getPrev(this.sketch, cursor), LEFT);
           break;
         case RIGHT:
           if (!this.props.circular && cursor === this.props.children.length - 1) return;
-          this.performAction(getNext(this.sketch, cursor));
+          this.performAction(getNext(this.sketch, cursor), RIGHT);
           break;
         case DOWN:
           this.performCallback(this.props.onDownExit);
@@ -137,26 +149,26 @@ class Carousel extends Component {
   }
 
   render() {
-    const { size, elWidth, speed, childrenClassName, circular, children, className } = this.props;
-    const { cursor } = this.state;
+    const { size, speed, childrenClassName, circular, children, className } = this.props;
+    const { cursor, transition, anim } = this.state;
     const ids = children.map((el, index) => index);
     const indexs = build(ids, size + 4, cursor, circular);
     return <div className={className} style={{
       position: 'absolute',
       overflow: 'hidden',
     }}>
-      {children.map((el, index) => {
-        if (indexs.indexOf(index) !== -1) {
-          const x = (indexs.indexOf(index) - 2) * elWidth;
+      <div style={{
+        width: '4000px',
+        transform: `translate3d(${transition}px, 0, 0)`,
+        transition: anim ? `transform ${speed}ms` : 'none',
+        willChange: "transform",
+      }}>
+        {indexs.map((index) => {
           return <div key={index} className={childrenClassName} style={{
-            transform: `translate3d(${x}px, 0, 0)`,
-            transition: (x === -(2 * elWidth) || x === (size + 1) * elWidth) ? 'none' : `transform ${speed}ms`,
-            willChange: "transform",
-            opacity: (x === -(2 * elWidth) || x === (size + 1) * elWidth) ? 0 : 1,
-          }}>{el}</div>;
-        }
-        return null;
-      })}
+            display: 'inline-block'
+          }}>{children[index]}</div>;
+        })}
+      </div>
     </div>;
   }
 

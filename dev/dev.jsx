@@ -1,8 +1,18 @@
+import 'react-addons-perf';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {createStore, applyMiddleware, combineReducers} from 'redux';
-import {connect, Provider} from 'react-redux';
-import {Binder, StrapeBinder, keysInit, keysReducer, activeKeyBinder} from '../src';
+import { compose } from 'recompose';
+import { createStore, applyMiddleware, combineReducers } from 'redux';
+import { connect, Provider } from 'react-redux';
+import {
+  Binder,
+  Keys,
+  StrapeBinder,
+  Carousel,
+  keysInit,
+  keysReducer,
+  activeKeyBinder
+} from '../src';
 
 const logger = store => next => action => {
   console.group(action.type);
@@ -15,54 +25,41 @@ const logger = store => next => action => {
 
 const store = createStore(combineReducers({
   '@@keys': keysReducer,
-}), applyMiddleware(logger));
+}), compose(applyMiddleware(), window.devToolsExtension && window.devToolsExtension()));
 
-keysInit({store: store});
+keysInit({ store: store });
 
-const PureMosaic = ({binder1, binder2, selectedId}) => {
-  const selectedId1 = binder1.selectedId;
-  const active1 = binder1.active;
-  const selectedId2 = binder2.selectedId;
-  const active2 = binder2.active;
-  const binder2Style = {
-    marginLeft: -binder2.marginLeft,
-  };
+const PureMosaic = () => {
   return (
-    <div className="container">
-      <Binder id="binder1" onDownExit="binder2" active={true}>
-        <li id="b1" className={active1 && selectedId1 === 'b1' ? 'selected' : ''}>BOUTON 1</li>
-        <li id="b2" className={active1 && selectedId1 === 'b2' ? 'selected' : ''}>BOUTON 2</li>
-      </Binder>
-      <StrapeBinder id="binder2" onUpExit="binder1" enterStrategy="start" strategy="bounds"
-                    wrapper=".wrapper">
-        <div className="wrapper">
-          <ul style={binder2Style}>
-            <li id="b7" className={active2 && selectedId2 === 'b7' ? 'selected' : ''}>BOUTON 7</li>
-            <li id="b8" className={active2 && selectedId2 === 'b8' ? 'selected' : ''}>BOUTON 8</li>
-            <li id="b9" className={active2 && selectedId2 === 'b9' ? 'selected' : ''}>BOUTON 9</li>
-            <li id="b10" className={active2 && selectedId2 === 'b10' ? 'selected' : ''}>BOUTON 10
-            </li>
-            <li id="b11" className={active2 && selectedId2 === 'b11' ? 'selected' : ''}>BOUTON 11
-            </li>
-            <li id="b12" className={active2 && selectedId2 === 'b12' ? 'selected' : ''}>BOUTON 12
-            </li>
-          </ul>
-        </div>
-      </StrapeBinder>
-    </div>
+    <Carousel id="carousel" active={true} size={3} elWidth={50} className="carousel" speed={60}
+              debounce={65}>
+      <div id="1" className="thumb">1</div>
+      <div id="2" className="thumb">2</div>
+      <div id="3" className="thumb">3</div>
+      <div id="4" className="thumb">4</div>
+      <div id="5" className="thumb">5</div>
+      <div id="6" className="thumb">6</div>
+      <div id="7" className="thumb">7</div>
+      <div id="8" className="thumb">8</div>
+      <div id="9" className="thumb">9</div>
+      <div id="10" className="thumb">10</div>
+      <div id="11" className="thumb">11</div>
+      <div id="12" className="thumb">12</div>
+      <div id="13" className="thumb">13</div>
+      <div id="14" className="thumb">14</div>
+      <div id="15" className="thumb">15</div>
+    </Carousel>
   );
 };
 
 const Mosaic = connect(state => {
   return {
     selectedId: state['@@keys'].current.selectedId,
-    binder1: state['@@keys'].getBinder('binder1'),
-    binder2: state['@@keys'].getBinder('binder2'),
   };
 })(PureMosaic);
 
 ReactDOM.render(<Provider store={store}>
-  <Mosaic/>
+  <PureMosaic/>
 </Provider>, document.getElementById('body'));
 
 activeKeyBinder('strape-1');
